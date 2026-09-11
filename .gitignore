@@ -1,0 +1,14 @@
+.venv/
+.build/
+__pycache__/
+.superdesign/
+.claude/
+*.mp4
+*.png
+КП-контент.md
+ИСХОДНЫЕ-УСЛОВИЯ.md
+ЗАПРОС-Higgsfield.md
+ЗАПРОС-Higgsfield-2.md
+ПРОМПТЫ-Higgsfield.md
+build-frames.py
+.DS_Store

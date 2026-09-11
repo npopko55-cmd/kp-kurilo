@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>KURILO — контент-машина для Reels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="assets/poster.webp">
+<style>
+  /* Тема заблокирована на тёмной: ассет снят в тёмной студии, светлого режима
+     у страницы нет намеренно. Один акцент на всю страницу, один масштаб форм. */
+  :root{
+    --bg:#0D0B0A;
+    --page-bg:radial-gradient(ellipse 58% 44% at 62% 44%, #1C1815 0%, rgba(28,24,21,0) 66%);
+    --ink:#F4EFE9;
+    --dim:#8C837B;
+    --accent:#E9631C;
+    --hair:rgba(255,255,255,.09);
+    --pad:clamp(20px, 4vw, 64px);
+    --stage-h:min(84vh, 760px);
+    --stage-w:calc(var(--stage-h) * 0.75);
+    --stage-dx:0px;
+    --stage-s:1;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--ink);
+    background:var(--bg) var(--page-bg) fixed;
+    font-family:'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+
+  .top{
+    position:fixed; inset:0 0 auto 0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    height:68px; padding:0 var(--pad);
+    background:linear-gradient(180deg, rgba(13,11,10,.94), rgba(13,11,10,0));
+  }
+  .logo{font-weight:800; letter-spacing:.24em; font-size:clamp(14px,1.4vw,19px); text-transform:uppercase}
+  .logo span{color:var(--accent)}
+  .handle{color:var(--dim); font-size:clamp(12px,1.05vw,15px); letter-spacing:.02em}
+
+  /* ---------- стадия с секвенцией ---------- */
+  #stage{
+    position:fixed; left:50%; top:50%; z-index:5; pointer-events:none;
+    width:var(--stage-w); height:var(--stage-h);
+    transform:translate(-50%,-50%) translateX(var(--stage-dx)) scale(var(--stage-s));
+  }
+  #canvas, #poster{position:absolute; inset:0; width:100%; height:100%; display:block}
+  #poster{object-fit:contain}
+
+  /* аккаунт на экране телефона: координаты сняты с финального кадра ролика */
+  .screen{
+    position:absolute; left:36.1%; top:27.6%; width:27.7%; height:43.4%;
+    overflow:hidden; border-radius:5% / 3.6%; opacity:0;
+  }
+  .screen img{width:100%; height:100%; object-fit:cover; object-position:top; display:block}
+
+  /* ---------- секции ---------- */
+  main{position:relative; z-index:10}
+  section{position:relative}
+  .sticky{position:sticky; top:0; min-height:100dvh; display:flex; align-items:center}
+  .hold{width:100%; padding:0 var(--pad)}
+  .lane{width:min(46vw, 620px)}        /* контент слева, кадр справа: композиция не симметрична */
+
+  #hero{height:170vh}
+  #steps{height:280vh}
+  #offer{height:210vh}
+
+  h1{margin:0; font-weight:800; letter-spacing:-.035em; line-height:.96; font-size:clamp(34px, 4.6vw, 68px)}
+  h1 i{font-style:normal; color:var(--accent)}
+  h2{margin:0 0 clamp(22px,3.2vh,42px); font-weight:700; letter-spacing:-.025em; line-height:1.02;
+     font-size:clamp(26px, 3.4vw, 50px)}
+  .lead{margin:clamp(16px,2.2vh,26px) 0 0; max-width:34ch; color:var(--dim);
+        font-size:clamp(15px,1.35vw,20px); line-height:1.45}
+  /* Кнопок на странице нет: это презентация, а не лендинг с конверсией.
+     Единственная точка контакта — подпись со ссылкой в последнем блоке. */
+
+  /* ---------- этапы ---------- */
+  .steps{display:flex; flex-direction:column; gap:clamp(14px,2.4vh,26px)}
+  .step{
+    display:grid; grid-template-columns:auto 1fr; gap:clamp(14px,1.6vw,26px); align-items:baseline;
+    opacity:.46; transition:opacity .45s ease;
+  }
+  .step.on{opacity:1}
+  .step .num{font-variant-numeric:tabular-nums; font-weight:600; letter-spacing:-.02em;
+             font-size:clamp(15px,1.5vw,21px); color:var(--accent); min-width:2.2ch}
+  .step b{display:block; font-weight:600; font-size:clamp(17px,1.7vw,25px); letter-spacing:-.015em}
+  .step p{margin:.35em 0 0; color:var(--dim); font-size:clamp(13.5px,1.12vw,16px); line-height:1.5; max-width:46ch}
+
+  /* ---------- формат работы ---------- */
+  .terms{display:flex; flex-direction:column; gap:clamp(18px,2.6vh,30px)}
+  .price{font-weight:800; letter-spacing:-.04em; line-height:.92; font-size:clamp(46px,6.4vw,100px)}
+  .facts{display:flex; flex-wrap:wrap; gap:clamp(16px,2.4vw,48px)}
+  .fact{display:flex; flex-direction:column; gap:.2em}
+  .fact b{font-weight:600; font-size:clamp(17px,1.7vw,24px); letter-spacing:-.015em}
+  .fact span{color:var(--dim); font-size:clamp(13px,1.05vw,15px)}
+  .contact{color:var(--dim); font-size:clamp(13px,1.05vw,15px); margin:0}
+  .contact a{color:var(--ink); text-decoration:none; border-bottom:1px solid var(--accent); padding-bottom:1px}
+  .contact a:hover{color:var(--accent)}
+
+  footer{
+    position:relative; z-index:10; padding:clamp(26px,5vh,56px) var(--pad);
+    border-top:1px solid var(--hair); color:var(--dim);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    font-size:clamp(12px,1vw,14px);
+  }
+
+  /* ---------- мобильная раскладка ---------- */
+  @media (max-width:1023px){
+    :root{--band:40dvh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
+    #stage{
+      top:0; z-index:21;
+      transform:translateX(-50%) scale(var(--stage-s)); transform-origin:50% 0;
+      -webkit-mask-image:linear-gradient(#000 74%, transparent);
+      mask-image:linear-gradient(#000 74%, transparent);
+    }
+    body::before{
+      /* полоса выше контента: текст уезжающей секции уходит под неё, а не на кадр */
+      content:''; position:fixed; inset:0 0 auto 0; height:var(--band); z-index:20;
+      background:var(--bg) var(--page-bg) fixed;
+      -webkit-mask-image:linear-gradient(#000 74%, transparent);
+      mask-image:linear-gradient(#000 74%, transparent);
+    }
+    /* Отступ считает JS от реальной высоты кадра: он масштабируется по блокам,
+       и фиксированный отступ от полосы оставлял заголовок под машиной. */
+    .sticky{align-items:flex-start; padding-top:var(--content-top, calc(var(--band) + 14px)); padding-bottom:5dvh}
+    .lane{width:100%}
+    .step{opacity:.5}
+    .step p{font-size:13px; line-height:1.42}
+    #hero{height:170vh}
+    #steps{height:300vh}
+    #offer{height:220vh}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .screen{opacity:1}
+    .step{opacity:1}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="logo">KUR<span>I</span>LO</div>
+  <div class="handle">@kurilozakutilo</div>
+</header>
+
+<div id="stage">
+  <img id="poster" src="assets/poster.webp" alt="Автомобиль из Южной Кореи в тёмной студии">
+  <canvas id="canvas"></canvas>
+  <div class="screen" id="screen">
+    <img src="assets/profile.webp" alt="Профиль @kurilozakutilo в Instagram">
+  </div>
+</div>
+
+<main>
+  <section id="hero">
+    <div class="sticky">
+      <div class="hold">
+        <div class="lane">
+          <h1>Контент-машина<br>для <i>Reels</i></h1>
+          <p class="lead">Каждый день забираем залетевшие Reels конкурентов и пересобираем их под ваши автомобили и ваш тон.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="steps">
+    <div class="sticky">
+      <div class="hold">
+        <div class="lane">
+          <h2>Как устроена работа</h2>
+          <div class="steps">
+            <div class="step">
+              <span class="num">01</span>
+              <div>
+                <b>Анализ указанных конкурентов</b>
+                <p>Берём аккаунты, которые вы назвали, и разбираем, что они снимают и что у них выстреливает.</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="num">02</span>
+              <div>
+                <b>Парсинг залетевших Reels</b>
+                <p>Каждый день выгружаем только те ролики, которые реально набрали охваты, а не всю ленту подряд.</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="num">03</span>
+              <div>
+                <b>Раскадровка и анализ</b>
+                <p>Ролик раскладывается на кадры: хук первых секунд, склейки, тайминги, титры, звук.</p>
+              </div>
+            </div>
+            <div class="step">
+              <span class="num">04</span>
+              <div>
+                <b>Адаптация под вас</b>
+                <p>Пересобираем под ваш тон, ваши продукты и задачи. На выходе готовый текст и готовая раскадровка.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="offer">
+    <div class="sticky">
+      <div class="hold">
+        <div class="lane">
+          <h2>Формат работы</h2>
+          <div class="terms">
+            <div class="price">90 000 ₽</div>
+            <div class="facts">
+              <div class="fact"><b>Команда из 3 человек</b><span>на проекте</span></div>
+              <div class="fact"><b>Под ключ</b><span>настройка, запуск, инструкция</span></div>
+            </div>
+            <p class="contact">Telegram: <a href="https://t.me/dearhoff" target="_blank" rel="noopener">@dearhoff</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>KURILO, автомобили из Южной Кореи</span>
+  <span>Коммерческое предложение, 2026</span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Набор кадров выбирается один раз при инициализации: на мобильном лёгкий
+     assets/frames-m (44 кадра). При повороте экрана не меняем. */
+  var MOBILE = window.matchMedia('(max-width: 1023px)').matches;
+  var FRAMES = MOBILE ? 44 : 88;
+  var DIR = MOBILE ? 'assets/frames-m/' : 'assets/frames/';
+
+  /* C — кадр, на котором телефон уже собран (найден по профилю активности
+     исходника). Первый экран держит кадр 0: машина стоит целой. */
+  var C = MOBILE ? 42 : 84;
+  var LAST = FRAMES - 1;
+
+  /* Движение мотивировано: в первом экране камера стоит близко к машине,
+     дальше отъезжает и освобождает место тексту. */
+  var HERO_SCALE = MOBILE ? 1.42 : 1.55;
+  var BASE_SCALE = MOBILE ? 1.10 : 1;
+  var OFFER_SCALE = MOBILE ? 1.25 : 1.2;   // к финалу подъезжаем ближе: аккаунт на экране надо разглядеть
+  var SHIFT_VW = MOBILE ? 0 : 18;        // сдвиг кадра вправо за пределами первого экрана
+
+  var CONCURRENCY = 4, SMOOTH = 0.2, DPR_CAP = 2;
+
+  var stage  = document.getElementById('stage');
+  var canvas = document.getElementById('canvas');
+  var poster = document.getElementById('poster');
+  var screen = document.getElementById('screen');
+  var steps  = Array.prototype.slice.call(document.querySelectorAll('.step'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section'));
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var imgs = new Array(FRAMES);
+  var state = new Uint8Array(FRAMES);   // 0 не начат, 1 грузится, 2 готов, 3 ошибка
+  var inflight = 0, loadedCount = 0;
+  var target = 0, current = 0, drawn = -1, raf = 0, ctx = null;
+  var appliedS = '', appliedDx = '', appliedOp = '', activeStep = -1;
+
+  function src(i) { return DIR + 'f' + (i < 10 ? '00' : i < 100 ? '0' : '') + i + '.webp'; }
+
+  /* Ширина кадра в секвенции. Буфер больше неё не даёт ничего: резкость
+     упирается в сам файл. */
+  var NATIVE_W = MOBILE ? 626 : 834;
+
+  function sizeCanvas() {
+    var dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1);
+    /* В первом экране кадр показывается крупнее стадии, поэтому буфер считаем
+       по максимальному масштабу, а не по текущему размеру: иначе картинка
+       рисуется в мелкий буфер и растягивается трансформом в мыло. */
+    var w = Math.max(1, Math.min(NATIVE_W, Math.round(stage.offsetWidth * dpr * HERO_SCALE)));
+    var h = Math.max(1, Math.round(w * 4 / 3));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; drawn = -1; }
+    ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+  }
+
+  function nearestLoaded(i) {
+    if (state[i] === 2) return i;
+    for (var d = 1; d < FRAMES; d++) {
+      if (i - d >= 0 && state[i - d] === 2) return i - d;
+      if (i + d < FRAMES && state[i + d] === 2) return i + d;
+    }
+    return -1;
+  }
+
+  var posterHidden = false;
+  function hidePoster() {
+    if (posterHidden || !poster) return;
+    posterHidden = true;
+    poster.style.transition = 'none';
+    poster.style.opacity = '0';
+    poster.style.visibility = 'hidden';
+  }
+
+  function drawFrame() {
+    if (reduced || !ctx) return;
+    var want = Math.max(0, Math.min(LAST, Math.round(current)));
+    var use = nearestLoaded(want);
+    if (use < 0 || use === drawn) return;    // перерисовываем только при смене индекса
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imgs[use], 0, 0, canvas.width, canvas.height);
+    drawn = use;
+    hidePoster();
+  }
+
+  function nextToLoad() {
+    var c = Math.max(0, Math.min(LAST, Math.round(current)));
+    for (var d = 0; d < FRAMES; d++) {
+      if (c - d >= 0 && state[c - d] === 0) return c - d;
+      if (c + d < FRAMES && state[c + d] === 0) return c + d;
+    }
+    return -1;
+  }
+
+  function pump() {
+    while (inflight < CONCURRENCY) {
+      var i = nextToLoad();
+      if (i < 0) return;
+      state[i] = 1; inflight++;
+      (function (n) {
+        var im = new Image();
+        im.decoding = 'async';
+        im.onload = function () { imgs[n] = im; state[n] = 2; loadedCount++; inflight--; drawFrame(); pump(); };
+        im.onerror = function () { state[n] = 3; inflight--; pump(); };
+        im.src = src(n);
+      })(i);
+    }
+  }
+
+  function bottomOf(sec) { return sec.getBoundingClientRect().bottom + window.pageYOffset; }
+
+  function marks() {
+    var vh = window.innerHeight;
+    var a = Math.max(1, bottomOf(sections[0]) - vh);
+    var b = Math.max(a + 1, bottomOf(sections[1]) - vh);
+    var c = Math.max(b + 1, bottomOf(sections[2]) - vh);
+    return { hero: a, steps: b, offer: c };
+  }
+
+  function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+
+  /* Первый блок держит кадр 0 (машина целая), второй разбирает её на этапах,
+     третий дособирает в телефон и включает аккаунт на экране. */
+  function frameAt(y) {
+    var m = marks();
+    if (y <= m.hero) return 0;
+    if (y <= m.steps) return (y - m.hero) / (m.steps - m.hero) * C;
+    if (y <= m.offer) return C + (y - m.steps) / (m.offer - m.steps) * (LAST - C);
+    return LAST;
+  }
+
+  function heroProgress() { return clamp01(window.pageYOffset / marks().hero); }
+
+  function stepsProgress() {
+    var m = marks();
+    return clamp01((window.pageYOffset - m.hero) / (m.steps - m.hero));
+  }
+
+  function offerProgress() {
+    var m = marks();
+    return clamp01((window.pageYOffset - m.steps) / (m.offer - m.steps));
+  }
+
+  /* Экран телефона загорается только когда корпус уже собран. */
+  function screenOpacity(f) {
+    var start = C - 3;
+    return f <= start ? 0 : clamp01((f - start) / ((LAST - start) * 0.5));
+  }
+
+  function tick() {
+    raf = 0;
+    target = frameAt(window.pageYOffset);
+    var diff = target - current;
+    if (Math.abs(diff) < 0.01) current = target; else current += diff * SMOOTH;
+
+    var hp = reduced ? 1 : heroProgress();
+    var op3 = reduced ? 1 : offerProgress();
+    var s = (BASE_SCALE + (HERO_SCALE - BASE_SCALE) * (1 - hp)
+             + (OFFER_SCALE - BASE_SCALE) * op3).toFixed(4);
+    if (s !== appliedS) {
+      appliedS = s;
+      stage.style.setProperty('--stage-s', s);
+      /* offsetHeight не знает про transform, поэтому масштаб добавляем сами. */
+      if (MOBILE) {
+        document.documentElement.style.setProperty(
+          '--content-top', Math.round(stage.offsetHeight * (+s) + 14) + 'px');
+      }
+    }
+
+    /* Кадр стоит справа на всех трёх блоках: одна ось композиции, текст слева. */
+    if (!MOBILE && appliedDx === '') {
+      appliedDx = SHIFT_VW + 'vw';
+      stage.style.setProperty('--stage-dx', appliedDx);
+    }
+
+    var op = (reduced ? 1 : screenOpacity(current)).toFixed(3);
+    if (op !== appliedOp) { appliedOp = op; screen.style.opacity = op; }
+
+    /* Активный этап подсвечивается в такт разбору машины: это иерархия, а не декор. */
+    var idx = Math.min(steps.length - 1, Math.floor(stepsProgress() * steps.length + 0.0001));
+    if (idx !== activeStep) {
+      activeStep = idx;
+      for (var i = 0; i < steps.length; i++) steps[i].classList.toggle('on', i === idx);
+    }
+
+    drawFrame();
+    pump();
+    if (Math.abs(target - current) >= 0.01) kick();
+  }
+
+  function kick() { if (!raf) raf = requestAnimationFrame(tick); }
+
+  function onResize() { sizeCanvas(); drawFrame(); kick(); }
+
+  function init() {
+    sizeCanvas();
+    if (!reduced) pump();
+    target = current = frameAt(window.pageYOffset);
+    drawFrame();
+    tick();
+    window.addEventListener('scroll', function () { kick(); }, { passive: true });
+    window.addEventListener('resize', onResize);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  /* Телеметрия для замеров приёмки. */
+  window.__kp = {
+    frames: FRAMES, mobile: MOBILE, dir: DIR, C: C,
+    get index() { return Math.round(current); },
+    get target() { return target; },
+    get drawn() { return drawn; },
+    get loaded() { return loadedCount; },
+    get errors() { var e = 0; for (var i = 0; i < FRAMES; i++) if (state[i] === 3) e++; return e; },
+    get screen() { return +screen.style.opacity || 0; },
+    get scale() { return +appliedS; },
+    get step() { return activeStep; },
+    marks: marks, frameAt: frameAt,
+    settle: function (lim) {
+      var i = 0, max = lim || 300;
+      do { tick(); i++; } while (Math.abs(target - current) >= 0.01 && i < max);
+      tick();
+      return i + 1;
+    }
+  };
+})();
+</script>
+</body>
+</html>
