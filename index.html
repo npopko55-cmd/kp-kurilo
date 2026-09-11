@@ -5,11 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>KURILO — контент-машина для Reels</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/onest-800-cyrillic.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/onest-400-cyrillic.woff2" crossorigin>
 <link rel="preload" as="image" href="assets/poster.webp">
 <style>
+  /* Шрифт лежит рядом с сайтом: внешний CDN добавляет два соединения
+     и отваливается там, где Google недоступен. */
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:400; font-display:swap;
+    src:url('assets/fonts/onest-400-cyrillic.woff2') format('woff2');
+    unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116}
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:400; font-display:swap;
+    src:url('assets/fonts/onest-400-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:600; font-display:swap;
+    src:url('assets/fonts/onest-600-cyrillic.woff2') format('woff2');
+    unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116}
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:600; font-display:swap;
+    src:url('assets/fonts/onest-600-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:800; font-display:swap;
+    src:url('assets/fonts/onest-800-cyrillic.woff2') format('woff2');
+    unicode-range:U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116}
+  @font-face{font-family:'Onest'; font-style:normal; font-weight:800; font-display:swap;
+    src:url('assets/fonts/onest-800-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+
   /* Тема заблокирована на тёмной: ассет снят в тёмной студии, светлого режима
      у страницы нет намеренно. Один акцент на всю страницу, один масштаб форм. */
   :root{
@@ -39,6 +59,13 @@
     height:68px; padding:0 var(--pad);
     background:linear-gradient(180deg, rgba(13,11,10,.94), rgba(13,11,10,0));
   }
+  /* Уезжающий текст предыдущего блока растворяется под шапкой, а не торчит
+     обрезанной строкой. */
+  .veil-top{
+    position:fixed; inset:0 0 auto 0; height:clamp(96px,13vh,150px); z-index:30;
+    pointer-events:none;
+    background:linear-gradient(180deg, var(--bg) 0 38%, rgba(13,11,10,.86) 62%, rgba(13,11,10,0) 100%);
+  }
   .logo{font-weight:800; letter-spacing:.24em; font-size:clamp(14px,1.4vw,19px); text-transform:uppercase}
   .logo span{color:var(--accent)}
   .handle{color:var(--dim); font-size:clamp(12px,1.05vw,15px); letter-spacing:.02em}
@@ -62,7 +89,7 @@
   /* ---------- секции ---------- */
   main{position:relative; z-index:10}
   section{position:relative}
-  .sticky{position:sticky; top:0; min-height:100dvh; display:flex; align-items:center}
+  .sticky{position:sticky; top:0; min-height:100vh; min-height:100dvh; display:flex; align-items:center}
   .hold{width:100%; padding:0 var(--pad)}
   .lane{width:min(46vw, 620px)}        /* контент слева, кадр справа: композиция не симметрична */
 
@@ -72,7 +99,7 @@
 
   h1{margin:0; font-weight:800; letter-spacing:-.035em; line-height:.96; font-size:clamp(34px, 4.6vw, 68px)}
   h1 i{font-style:normal; color:var(--accent)}
-  h2{margin:0 0 clamp(22px,3.2vh,42px); font-weight:700; letter-spacing:-.025em; line-height:1.02;
+  h2{margin:0 0 clamp(22px,3.2vh,42px); font-weight:800; letter-spacing:-.025em; line-height:1.02;
      font-size:clamp(26px, 3.4vw, 50px)}
   .lead{margin:clamp(16px,2.2vh,26px) 0 0; max-width:34ch; color:var(--dim);
         font-size:clamp(15px,1.35vw,20px); line-height:1.45}
@@ -111,7 +138,7 @@
 
   /* ---------- мобильная раскладка ---------- */
   @media (max-width:1023px){
-    :root{--band:40dvh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
+    :root{--band:40vh; --band:40dvh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
     #stage{
       top:0; z-index:21;
       transform:translateX(-50%) scale(var(--stage-s)); transform-origin:50% 0;
@@ -137,12 +164,13 @@
   }
 
   @media (prefers-reduced-motion:reduce){
-    .screen{opacity:1}
-    .step{opacity:1}
+    .step{opacity:1; transition:none}     /* все этапы читаются сразу */
   }
 </style>
 </head>
 <body>
+
+<div class="veil-top"></div>
 
 <header class="top">
   <div class="logo">KUR<span>I</span>LO</div>
@@ -240,12 +268,12 @@
   /* Набор кадров выбирается один раз при инициализации: на мобильном лёгкий
      assets/frames-m (44 кадра). При повороте экрана не меняем. */
   var MOBILE = window.matchMedia('(max-width: 1023px)').matches;
-  var FRAMES = MOBILE ? 44 : 88;
+  var FRAMES = MOBILE ? 30 : 59;
   var DIR = MOBILE ? 'assets/frames-m/' : 'assets/frames/';
 
   /* C — кадр, на котором телефон уже собран (найден по профилю активности
      исходника). Первый экран держит кадр 0: машина стоит целой. */
-  var C = MOBILE ? 42 : 84;
+  var C = MOBILE ? 28 : 56;
   var LAST = FRAMES - 1;
 
   /* Движение мотивировано: в первом экране камера стоит близко к машине,
@@ -255,7 +283,11 @@
   var OFFER_SCALE = MOBILE ? 1.25 : 1.2;   // к финалу подъезжаем ближе: аккаунт на экране надо разглядеть
   var SHIFT_VW = MOBILE ? 0 : 18;        // сдвиг кадра вправо за пределами первого экрана
 
-  var CONCURRENCY = 4, SMOOTH = 0.2, DPR_CAP = 2;
+  var CONCURRENCY = 4, DPR_CAP = 2;
+  /* Инерцию гасим при «уменьшении движения», но сам скраб оставляем:
+     иначе у людей с этой системной настройкой страница выглядит статичной
+     картинкой, и презентация «не работает». */
+  var SMOOTH = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 0.2;
 
   var stage  = document.getElementById('stage');
   var canvas = document.getElementById('canvas');
@@ -263,7 +295,6 @@
   var screen = document.getElementById('screen');
   var steps  = Array.prototype.slice.call(document.querySelectorAll('.step'));
   var sections = Array.prototype.slice.call(document.querySelectorAll('section'));
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var imgs = new Array(FRAMES);
   var state = new Uint8Array(FRAMES);   // 0 не начат, 1 грузится, 2 готов, 3 ошибка
@@ -309,7 +340,7 @@
   }
 
   function drawFrame() {
-    if (reduced || !ctx) return;
+    if (!ctx) return;
     var want = Math.max(0, Math.min(LAST, Math.round(current)));
     var use = nearestLoaded(want);
     if (use < 0 || use === drawn) return;    // перерисовываем только при смене индекса
@@ -361,7 +392,9 @@
     var m = marks();
     if (y <= m.hero) return 0;
     if (y <= m.steps) return (y - m.hero) / (m.steps - m.hero) * C;
-    if (y <= m.offer) return C + (y - m.steps) / (m.offer - m.steps) * (LAST - C);
+    /* Сборку телефона укладываем в первые 55% последнего блока: дальше кадр
+       стоит, и только тогда включается экран. */
+    if (y <= m.offer) return C + clamp01((y - m.steps) / (m.offer - m.steps) / 0.55) * (LAST - C);
     return LAST;
   }
 
@@ -377,10 +410,11 @@
     return clamp01((window.pageYOffset - m.steps) / (m.offer - m.steps));
   }
 
-  /* Экран телефона загорается только когда корпус уже собран. */
-  function screenOpacity(f) {
-    var start = C - 3;
-    return f <= start ? 0 : clamp01((f - start) / ((LAST - start) * 0.5));
+  /* Экран загорается только после того, как секвенция дошла до последнего кадра
+     и телефон стоит на месте. Раньше профиль всплывал поверх ещё разобранного
+     кузова: координаты экрана сняты с финального кадра и на других не совпадают. */
+  function screenOpacity() {
+    return clamp01((offerProgress() - 0.62) / 0.16);
   }
 
   function tick() {
@@ -389,8 +423,8 @@
     var diff = target - current;
     if (Math.abs(diff) < 0.01) current = target; else current += diff * SMOOTH;
 
-    var hp = reduced ? 1 : heroProgress();
-    var op3 = reduced ? 1 : offerProgress();
+    var hp = heroProgress();
+    var op3 = offerProgress();
     var s = (BASE_SCALE + (HERO_SCALE - BASE_SCALE) * (1 - hp)
              + (OFFER_SCALE - BASE_SCALE) * op3).toFixed(4);
     if (s !== appliedS) {
@@ -409,7 +443,7 @@
       stage.style.setProperty('--stage-dx', appliedDx);
     }
 
-    var op = (reduced ? 1 : screenOpacity(current)).toFixed(3);
+    var op = screenOpacity().toFixed(3);
     if (op !== appliedOp) { appliedOp = op; screen.style.opacity = op; }
 
     /* Активный этап подсвечивается в такт разбору машины: это иерархия, а не декор. */
@@ -430,7 +464,7 @@
 
   function init() {
     sizeCanvas();
-    if (!reduced) pump();
+    pump();
     target = current = frameAt(window.pageYOffset);
     drawFrame();
     tick();
