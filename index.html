@@ -7,7 +7,7 @@
 <title>KURILO — контент-машина для Reels</title>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/onest-800-cyrillic.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/onest-400-cyrillic.woff2" crossorigin>
-<link rel="preload" as="image" href="assets/poster.webp">
+<link rel="preload" as="image" href="assets/poster.webp?v=4">
 <style>
   /* Шрифт лежит рядом с сайтом: внешний CDN добавляет два соединения
      и отваливается там, где Google недоступен. */
@@ -177,7 +177,7 @@
 </header>
 
 <div id="stage">
-  <img id="poster" src="assets/poster.webp" alt="Автомобиль из Южной Кореи в тёмной студии">
+  <img id="poster" src="assets/poster.webp?v=4" alt="Автомобиль из Южной Кореи в тёмной студии">
   <canvas id="canvas"></canvas>
   <div class="screen" id="screen">
     <img src="assets/profile.webp" alt="Профиль @kurilozakutilo в Instagram">
@@ -302,7 +302,12 @@
   var target = 0, current = 0, drawn = -1, raf = 0, ctx = null;
   var appliedS = '', appliedDx = '', appliedOp = '', activeStep = -1;
 
-  function src(i) { return DIR + 'f' + (i < 10 ? '00' : i < 100 ? '0' : '') + i + '.webp'; }
+  /* Имена кадров между пересборками не меняются, а Pages отдаёт их с кэшем на
+     десять минут. Без версии в адресе тот, кто уже открывал ссылку, увидит
+     смесь старой и новой секвенции. Поднимать при каждой пересборке кадров. */
+  var V = '?v=4';
+
+  function src(i) { return DIR + 'f' + (i < 10 ? '00' : i < 100 ? '0' : '') + i + '.webp' + V; }
 
   /* Ширина кадра в секвенции. Буфер больше неё не даёт ничего: резкость
      упирается в сам файл. */
@@ -392,9 +397,9 @@
     var m = marks();
     if (y <= m.hero) return 0;
     if (y <= m.steps) return (y - m.hero) / (m.steps - m.hero) * C;
-    /* Сборку телефона укладываем в первые 55% последнего блока: дальше кадр
-       стоит, и только тогда включается экран. */
-    if (y <= m.offer) return C + clamp01((y - m.steps) / (m.offer - m.steps) / 0.55) * (LAST - C);
+    /* Сборку укладываем в первые 40% последнего блока: дальше кадр стоит,
+       и экран зажигается сразу, без пустой прокрутки с чёрным телефоном. */
+    if (y <= m.offer) return C + clamp01((y - m.steps) / (m.offer - m.steps) / 0.40) * (LAST - C);
     return LAST;
   }
 
@@ -408,11 +413,13 @@
     return clamp01((window.pageYOffset - m.steps) / (m.offer - m.steps));
   }
 
-  /* Экран загорается только после того, как секвенция дошла до последнего кадра
-     и телефон стоит на месте. Раньше профиль всплывал поверх ещё разобранного
-     кузова: координаты экрана сняты с финального кадра и на других не совпадают. */
+  /* Экран зажигается в последней четверти сборки корпуса, а не по прокрутке:
+     на мобильном наборе кадров вдвое меньше, сборка проходит быстрее, и привязка
+     к прогрессу блока заставляла ждать лишний экран с чёрным телефоном. */
   function screenOpacity() {
-    return clamp01((offerProgress() - 0.62) / 0.16);
+    if (LAST === C) return 1;
+    var t = clamp01((current - C) / (LAST - C));
+    return clamp01((t - 0.7) / 0.3);
   }
 
   function tick() {
