@@ -432,8 +432,10 @@
       stage.style.setProperty('--stage-s', s);
       /* offsetHeight не знает про transform, поэтому масштаб добавляем сами. */
       if (MOBILE) {
+        /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены,
+           и по полной высоте между машиной и заголовком висела дыра. */
         document.documentElement.style.setProperty(
-          '--content-top', Math.round(stage.offsetHeight * (+s) + 14) + 'px');
+          '--content-top', Math.round(stage.offsetHeight * (+s) * 0.84 + 12) + 'px');
       }
     }
 
