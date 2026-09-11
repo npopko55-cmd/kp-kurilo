@@ -34,7 +34,6 @@
      у страницы нет намеренно. Один акцент на всю страницу, один масштаб форм. */
   :root{
     --bg:#0D0B0A;
-    --page-bg:radial-gradient(ellipse 58% 44% at 62% 44%, #1C1815 0%, rgba(28,24,21,0) 66%);
     --ink:#F4EFE9;
     --dim:#8C837B;
     --accent:#E9631C;
@@ -48,7 +47,7 @@
   *{box-sizing:border-box}
   body{
     margin:0; color:var(--ink);
-    background:var(--bg) var(--page-bg) fixed;
+    background:var(--bg);
     font-family:'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing:antialiased; overflow-x:hidden;
   }
@@ -91,7 +90,7 @@
   section{position:relative}
   .sticky{position:sticky; top:0; min-height:100vh; min-height:100dvh; display:flex; align-items:center}
   .hold{width:100%; padding:0 var(--pad)}
-  .lane{width:min(46vw, 620px)}        /* контент слева, кадр справа: композиция не симметрична */
+  .lane{width:min(42vw, 560px)}        /* контент слева, кадр справа: композиция не симметрична */
 
   #hero{height:170vh}
   #steps{height:280vh}
@@ -148,7 +147,7 @@
     body::before{
       /* полоса выше контента: текст уезжающей секции уходит под неё, а не на кадр */
       content:''; position:fixed; inset:0 0 auto 0; height:var(--band); z-index:20;
-      background:var(--bg) var(--page-bg) fixed;
+      background:var(--bg);
       -webkit-mask-image:linear-gradient(#000 74%, transparent);
       mask-image:linear-gradient(#000 74%, transparent);
     }
@@ -278,10 +277,11 @@
 
   /* Движение мотивировано: в первом экране камера стоит близко к машине,
      дальше отъезжает и освобождает место тексту. */
-  var HERO_SCALE = MOBILE ? 1.42 : 1.55;
-  var BASE_SCALE = MOBILE ? 1.10 : 1;
-  var OFFER_SCALE = MOBILE ? 1.25 : 1.2;   // к финалу подъезжаем ближе: аккаунт на экране надо разглядеть
-  var SHIFT_VW = MOBILE ? 0 : 18;        // сдвиг кадра вправо за пределами первого экрана
+  /* Один размер кадра на всю страницу: масштаб по блокам заказчику не нужен.
+     Значение подобрано так, чтобы кадр был выше вьюпорта — тогда его верхняя
+     и нижняя кромки всегда за экраном и прямоугольник не выдаёт себя. */
+  var SCALE = MOBILE ? 1.25 : 1.3;
+  var SHIFT_VW = MOBILE ? 0 : 20;        // кадр стоит справа, текст слева
 
   var CONCURRENCY = 4, DPR_CAP = 2;
   /* Инерцию гасим при «уменьшении движения», но сам скраб оставляем:
@@ -313,7 +313,7 @@
     /* В первом экране кадр показывается крупнее стадии, поэтому буфер считаем
        по максимальному масштабу, а не по текущему размеру: иначе картинка
        рисуется в мелкий буфер и растягивается трансформом в мыло. */
-    var w = Math.max(1, Math.min(NATIVE_W, Math.round(stage.offsetWidth * dpr * HERO_SCALE)));
+    var w = Math.max(1, Math.min(NATIVE_W, Math.round(stage.offsetWidth * dpr * SCALE)));
     var h = Math.max(1, Math.round(w * 4 / 3));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; drawn = -1; }
     ctx = canvas.getContext('2d');
@@ -398,8 +398,6 @@
     return LAST;
   }
 
-  function heroProgress() { return clamp01(window.pageYOffset / marks().hero); }
-
   function stepsProgress() {
     var m = marks();
     return clamp01((window.pageYOffset - m.hero) / (m.steps - m.hero));
@@ -423,26 +421,18 @@
     var diff = target - current;
     if (Math.abs(diff) < 0.01) current = target; else current += diff * SMOOTH;
 
-    var hp = heroProgress();
-    var op3 = offerProgress();
-    var s = (BASE_SCALE + (HERO_SCALE - BASE_SCALE) * (1 - hp)
-             + (OFFER_SCALE - BASE_SCALE) * op3).toFixed(4);
-    if (s !== appliedS) {
-      appliedS = s;
-      stage.style.setProperty('--stage-s', s);
-      /* offsetHeight не знает про transform, поэтому масштаб добавляем сами. */
+    if (appliedS === '') {
+      appliedS = SCALE.toFixed(4);
+      stage.style.setProperty('--stage-s', appliedS);
       if (MOBILE) {
-        /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены,
-           и по полной высоте между машиной и заголовком висела дыра. */
+        /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены. */
         document.documentElement.style.setProperty(
-          '--content-top', Math.round(stage.offsetHeight * (+s) * 0.84 + 12) + 'px');
+          '--content-top', Math.round(stage.offsetHeight * SCALE * 0.84 + 12) + 'px');
       }
-    }
-
-    /* Кадр стоит справа на всех трёх блоках: одна ось композиции, текст слева. */
-    if (!MOBILE && appliedDx === '') {
-      appliedDx = SHIFT_VW + 'vw';
-      stage.style.setProperty('--stage-dx', appliedDx);
+      if (!MOBILE) {
+        appliedDx = SHIFT_VW + 'vw';
+        stage.style.setProperty('--stage-dx', appliedDx);
+      }
     }
 
     var op = screenOpacity().toFixed(3);
