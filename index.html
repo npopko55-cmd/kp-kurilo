@@ -128,12 +128,6 @@
   .contact a{color:var(--ink); text-decoration:none; border-bottom:1px solid var(--accent); padding-bottom:1px}
   .contact a:hover{color:var(--accent)}
 
-  footer{
-    position:relative; z-index:10; padding:clamp(26px,5vh,56px) var(--pad);
-    border-top:1px solid var(--hair); color:var(--dim);
-    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
-    font-size:clamp(12px,1vw,14px);
-  }
 
   /* ---------- мобильная раскладка ---------- */
   @media (max-width:1023px) and (orientation:portrait){
@@ -156,8 +150,8 @@
       content:''; position:fixed; inset:0 0 auto 0; z-index:20;
       height:var(--content-top, calc(var(--band) + 14px));
       background:var(--bg);
-      -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent);
-      mask-image:linear-gradient(#000 calc(100% - 36px), transparent);
+      -webkit-mask-image:linear-gradient(#000 calc(100% - 60px), transparent);
+      mask-image:linear-gradient(#000 calc(100% - 60px), transparent);
     }
     /* Отступ считает JS от реальной высоты кадра: он масштабируется по блокам,
        и фиксированный отступ от полосы оставлял заголовок под машиной. */
@@ -292,10 +286,8 @@
   </section>
 </main>
 
-<footer>
-  <span>KURILO, автомобили из Южной Кореи</span>
-  <span>Коммерческое предложение, 2026</span>
-</footer>
+<!-- Футера нет намеренно: из-за него страница прокручивалась дальше конца
+     последнего блока, и блок с ценой уезжал под затемнение полосы. -->
 
 <script>
 (function () {
