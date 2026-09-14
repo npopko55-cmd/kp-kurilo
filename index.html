@@ -90,7 +90,7 @@
   section{position:relative}
   .sticky{position:sticky; top:0; min-height:100vh; min-height:100dvh; display:flex; align-items:center}
   .hold{width:100%; padding:0 var(--pad)}
-  .lane{width:min(42vw, 560px)}        /* контент слева, кадр справа: композиция не симметрична */
+  .lane{width:min(40vw, 560px)}        /* контент слева, кадр справа: композиция не симметрична */
 
   #hero{height:170vh}
   #steps{height:280vh}
@@ -136,7 +136,7 @@
   }
 
   /* ---------- мобильная раскладка ---------- */
-  @media (max-width:1023px){
+  @media (max-width:1023px) and (orientation:portrait){
     :root{--band:40vh; --band:40dvh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
     #stage{
       top:0; z-index:21;
@@ -162,8 +162,32 @@
     #offer{height:220vh}
   }
 
+
+  /* На невысоких экранах четыре описания этапов не влезают под кадр. Раскрыто
+     только описание активного этапа: подсветка и так идёт в такт разбору. */
+  @media (max-width:1023px) and (orientation:portrait) and (max-height:1000px), (max-height:560px){
+    .step p{max-height:0; opacity:0; margin-top:0; overflow:hidden;
+            transition:max-height .4s ease, opacity .3s ease, margin-top .4s ease}
+    .step.on p{max-height:7em; opacity:1; margin-top:.35em}
+  }
+  /* Телефон лёжа получает раскладку «текст слева, кадр справа», но ужатую. */
+  @media (max-height:560px) and (orientation:landscape){
+    .top{height:52px}
+    h1{font-size:28px}
+    .lead{font-size:14px}
+    .lane{width:46vw}
+    h2{font-size:22px; margin-bottom:12px}
+    .steps{gap:10px}
+    .step b{font-size:15px}
+    .step .num{font-size:13px}
+    .price{font-size:40px}
+    .terms{gap:12px}
+    .fact b{font-size:15px}
+  }
+
   @media (prefers-reduced-motion:reduce){
     .step{opacity:1; transition:none}     /* все этапы читаются сразу */
+    .step p{transition:none}
   }
 </style>
 </head>
@@ -264,9 +288,12 @@
 (function () {
   'use strict';
 
-  /* Набор кадров выбирается один раз при инициализации: на мобильном лёгкий
-     assets/frames-m (44 кадра). При повороте экрана не меняем. */
-  var MOBILE = window.matchMedia('(max-width: 1023px)').matches;
+  /* Мобильная раскладка только в портрете: телефону лёжа не хватает высоты
+     на полосу с кадром сверху, ему нужна раскладка «текст слева, кадр справа».
+     Набор кадров выбирается один раз при загрузке, раскладка — на каждый
+     resize и поворот, поэтому это две разные вещи. */
+  var MQ = window.matchMedia('(max-width: 1023px) and (orientation: portrait)');
+  var MOBILE = MQ.matches;                 // набор кадров, не меняется
   var FRAMES = MOBILE ? 30 : 59;
   var DIR = MOBILE ? 'assets/frames-m/' : 'assets/frames/';
 
@@ -275,13 +302,17 @@
   var C = MOBILE ? 28 : 56;
   var LAST = FRAMES - 1;
 
-  /* Движение мотивировано: в первом экране камера стоит близко к машине,
-     дальше отъезжает и освобождает место тексту. */
-  /* Один размер кадра на всю страницу: масштаб по блокам заказчику не нужен.
-     Значение подобрано так, чтобы кадр был выше вьюпорта — тогда его верхняя
+  /* Один размер кадра на всю страницу: при прокрутке масштаб не меняется.
+     От ширины экрана он зависит: на узком десктопе кадр чуть меньше, иначе
+     машина заходит под колонку текста. Кадр выше вьюпорта, поэтому его верхняя
      и нижняя кромки всегда за экраном и прямоугольник не выдаёт себя. */
-  var SCALE = MOBILE ? 1.25 : 1.3;
-  var SHIFT_VW = MOBILE ? 0 : 20;        // кадр стоит справа, текст слева
+  var SHIFT_VW = 20;                       // кадр стоит справа, текст слева
+  var BUFFER_SCALE = 1.3;                  // максимум из масштабов ниже: буфер не переаллоцируем
+
+  function layoutScale() {
+    if (MQ.matches) return 1.25;
+    return window.innerWidth < 1200 ? 1.12 : 1.3;
+  }
 
   var CONCURRENCY = 4, DPR_CAP = 2;
   /* Инерцию гасим при «уменьшении движения», но сам скраб оставляем:
@@ -318,7 +349,7 @@
     /* В первом экране кадр показывается крупнее стадии, поэтому буфер считаем
        по максимальному масштабу, а не по текущему размеру: иначе картинка
        рисуется в мелкий буфер и растягивается трансформом в мыло. */
-    var w = Math.max(1, Math.min(NATIVE_W, Math.round(stage.offsetWidth * dpr * SCALE)));
+    var w = Math.max(1, Math.min(NATIVE_W, Math.round(stage.offsetWidth * dpr * BUFFER_SCALE)));
     var h = Math.max(1, Math.round(w * 4 / 3));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; drawn = -1; }
     ctx = canvas.getContext('2d');
@@ -429,20 +460,6 @@
     var diff = target - current;
     if (Math.abs(diff) < 0.01) current = target; else current += diff * SMOOTH;
 
-    if (appliedS === '') {
-      appliedS = SCALE.toFixed(4);
-      stage.style.setProperty('--stage-s', appliedS);
-      if (MOBILE) {
-        /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены. */
-        document.documentElement.style.setProperty(
-          '--content-top', Math.round(stage.offsetHeight * SCALE * 0.84 + 12) + 'px');
-      }
-      if (!MOBILE) {
-        appliedDx = SHIFT_VW + 'vw';
-        stage.style.setProperty('--stage-dx', appliedDx);
-      }
-    }
-
     var op = screenOpacity().toFixed(3);
     if (op !== appliedOp) { appliedOp = op; screen.style.opacity = op; }
 
@@ -460,9 +477,24 @@
 
   function kick() { if (!raf) raf = requestAnimationFrame(tick); }
 
-  function onResize() { sizeCanvas(); drawFrame(); kick(); }
+  function applyLayout() {
+    var mob = MQ.matches, sc = layoutScale();
+    appliedS = sc.toFixed(4);
+    stage.style.setProperty('--stage-s', appliedS);
+    stage.style.setProperty('--stage-dx', mob ? '0px' : SHIFT_VW + 'vw');
+    if (mob) {
+      /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены. */
+      document.documentElement.style.setProperty(
+        '--content-top', Math.round(stage.offsetHeight * sc * 0.84 + 12) + 'px');
+    } else {
+      document.documentElement.style.removeProperty('--content-top');
+    }
+  }
+
+  function onResize() { applyLayout(); sizeCanvas(); drawFrame(); kick(); }
 
   function init() {
+    applyLayout();
     sizeCanvas();
     pump();
     target = current = frameAt(window.pageYOffset);
@@ -470,6 +502,8 @@
     tick();
     window.addEventListener('scroll', function () { kick(); }, { passive: true });
     window.addEventListener('resize', onResize);
+    if (MQ.addEventListener) MQ.addEventListener('change', onResize);
+    else if (MQ.addListener) MQ.addListener(onResize);   // Safari до 14
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
