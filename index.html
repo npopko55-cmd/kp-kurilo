@@ -137,19 +137,27 @@
 
   /* ---------- мобильная раскладка ---------- */
   @media (max-width:1023px) and (orientation:portrait){
-    :root{--band:40vh; --band:40dvh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
+    /* svh, а не dvh: в Safari на iPhone dvh меняется, когда при прокрутке
+       сворачивается адресная строка, и вся раскладка под кадром прыгает. */
+    :root{--band:40vh; --band:40svh; --stage-h:var(--band); --stage-w:calc(var(--band) * 0.75)}
     #stage{
       top:0; z-index:21;
       transform:translateX(-50%) scale(var(--stage-s)); transform-origin:50% 0;
-      -webkit-mask-image:linear-gradient(#000 74%, transparent);
-      mask-image:linear-gradient(#000 74%, transparent);
+      /* Кадр гаснет полностью к 86% своей высоты — это ровно линия, с которой
+         начинается текст (--content-top считает JS тем же множителем). Раньше
+         кадр был виден до самого низа и ложился на уезжающие этапы. */
+      -webkit-mask-image:linear-gradient(#000 72%, transparent 86%);
+      mask-image:linear-gradient(#000 72%, transparent 86%);
     }
     body::before{
-      /* полоса выше контента: текст уезжающей секции уходит под неё, а не на кадр */
-      content:''; position:fixed; inset:0 0 auto 0; height:var(--band); z-index:20;
+      /* Подложка прячет текст уезжающей секции и доходит ровно до начала
+         контента. Была высотой в полосу, а кадр в 1.25 раза выше неё: в зазоре
+         текст не скрывался, и полупрозрачный кадр лежал прямо на нём. */
+      content:''; position:fixed; inset:0 0 auto 0; z-index:20;
+      height:var(--content-top, calc(var(--band) + 14px));
       background:var(--bg);
-      -webkit-mask-image:linear-gradient(#000 74%, transparent);
-      mask-image:linear-gradient(#000 74%, transparent);
+      -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent);
+      mask-image:linear-gradient(#000 calc(100% - 36px), transparent);
     }
     /* Отступ считает JS от реальной высоты кадра: он масштабируется по блокам,
        и фиксированный отступ от полосы оставлял заголовок под машиной. */
@@ -160,6 +168,11 @@
     #hero{height:170vh}
     #steps{height:300vh}
     #offer{height:220vh}
+  }
+  /* На вытянутых телефонах под кадром оставалась пустая нижняя половина экрана:
+     даём кадру больше высоты. */
+  @media (max-width:1023px) and (orientation:portrait) and (min-height:800px){
+    :root{--band:45vh; --band:45svh}
   }
 
 
@@ -483,9 +496,10 @@
     stage.style.setProperty('--stage-s', appliedS);
     stage.style.setProperty('--stage-dx', mob ? '0px' : SHIFT_VW + 'vw');
     if (mob) {
-      /* 0.84, а не вся высота: нижняя шестая часть кадра — пустой пол сцены. */
+      /* 0.86 — та же линия, на которой в CSS полностью гаснет маска кадра:
+         ниже неё кадр прозрачен, и текст с ним не пересекается. */
       document.documentElement.style.setProperty(
-        '--content-top', Math.round(stage.offsetHeight * sc * 0.84 + 12) + 'px');
+        '--content-top', Math.round(stage.offsetHeight * sc * 0.86 + 10) + 'px');
     } else {
       document.documentElement.style.removeProperty('--content-top');
     }
